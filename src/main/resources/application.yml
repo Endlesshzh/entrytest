@@ -1,0 +1,125 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: redis-script-query-system
+
+  # Redis Configuration
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 0
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+    timeout: 3000ms
+
+# LLM Configuration - Multiple Providers Support
+llm:
+  # Primary provider: OPENAI, CLAUDE, COMPASS, OLLAMA, VLLM
+  primary-provider: OLLAMA
+
+  # Request timeout in seconds
+  timeout: 60
+  # Temperature for generation (0.0 - 1.0)
+  temperature: 0.3
+  # Max tokens to generate
+  max-tokens: 2000
+
+  # OpenAI Configuration
+  openai:
+    api-url: https://api.openai.com/v1/chat/completions
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-3.5-turbo
+
+  # Claude Configuration
+  claude:
+    api-url: https://api.anthropic.com/v1/messages
+    api-key: ${CLAUDE_API_KEY:}
+    model: claude-3-sonnet-20240229
+
+  # Compass Configuration (国内大模型)
+  compass:
+    api-url: ${COMPASS_API_URL:}
+    api-key: ${COMPASS_API_KEY:}
+    model: compass-1
+
+  # Ollama Configuration (Local)
+  ollama:
+    api-url: http://localhost:11434/api/generate
+    model: llama2
+
+  # vLLM Configuration (Local Deployment)
+  vllm:
+    api-url: http://localhost:8000/v1/chat/completions
+    model: meta-llama/Llama-2-7b-chat-hf
+
+# Script Engine Configuration
+script:
+  # Maximum script execution time in milliseconds
+  max-execution-time: 5000
+  # Enable/disable script caching
+  cache-enabled: true
+  # Maximum number of cached scripts
+  cache-size: 100
+  # Allowed Redis commands (whitelist)
+  allowed-commands:
+    - GET
+    - SET
+    - HGET
+    - HGETALL
+    - HSET
+    - KEYS
+    - SCAN
+    - MGET
+    - LRANGE
+    - SMEMBERS
+    - ZRANGE
+    - TTL
+    - EXISTS
+  # Forbidden patterns in scripts
+  forbidden-patterns:
+    - "FLUSHDB"
+    - "FLUSHALL"
+    - "SHUTDOWN"
+    - "CONFIG"
+    - "SCRIPT KILL"
+    - "SCRIPT FLUSH"
+    - "BGREWRITEAOF"
+    - "BGSAVE"
+    - "SAVE"
+    - "DEBUG"
+    - "MIGRATE"
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    org.example: DEBUG
+    org.example.service: DEBUG
+    org.example.service.llm: DEBUG
+    org.example.performance: INFO
+    org.springframework: INFO
+    org.springframework.web: DEBUG
+    org.springframework.data.redis: INFO
+
+# Actuator for monitoring and metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: redis-script-query-system
+  tracing:
+    sampling:
+      probability: 1.0
