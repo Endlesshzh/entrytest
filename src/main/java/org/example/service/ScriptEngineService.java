@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.*;
 
 /**
- * Service for executing Groovy scripts against Redis
- * Optimized for high performance (500+ QPS)
+ * Service for executing Groovy 脚本 against Redis
+ * 优化高性能（500+ QPS）
  */
 @Slf4j
 @Service
@@ -34,10 +34,10 @@ public class ScriptEngineService {
         this.redisTemplate = redisTemplate;
         this.scriptConfig = scriptConfig;
 
-        // Use cached thread pool for better performance
+        // 并发场景-线程池
         this.executorService = Executors.newCachedThreadPool();
 
-        // Use Caffeine cache for better performance
+        // 并发场景-缓存
         this.scriptCache = Caffeine.newBuilder()
                 .maximumSize(scriptConfig.getCacheSize())
                 .recordStats()
@@ -47,7 +47,7 @@ public class ScriptEngineService {
     }
 
     /**
-     * Execute a Groovy script
+     * Groovy 脚本执行
      */
     public ScriptExecutionResult executeScript(String scriptText, boolean testRun) {
         long startTime = System.nanoTime();
@@ -120,7 +120,7 @@ public class ScriptEngineService {
     }
 
     /**
-     * Validate script for security issues
+     * 脚本安全验证
      */
     private void validateScript(String script) {
         if (script == null || script.trim().isEmpty()) {
@@ -146,7 +146,7 @@ public class ScriptEngineService {
     }
 
     /**
-     * Create binding with Redis operations
+     * 创建绑定，包含 Redis 操作
      */
     private Binding createBinding() {
         Binding binding = new Binding();
@@ -174,7 +174,7 @@ public class ScriptEngineService {
     }
 
     /**
-     * Inner class to provide safe Redis operations to scripts
+     * Redis 操作代理
      */
     public static class RedisOperations {
         private final RedisTemplate<String, Object> redisTemplate;
