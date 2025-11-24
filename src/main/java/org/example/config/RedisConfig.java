@@ -9,7 +9,11 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis Configuration
- * Configures Redis connection and RedisTemplate for data operations
+ * 开机自启动：brew services start redis 已设置为开机自启动
+ * 配置文件位置：/usr/local/etc/redis.conf
+ * 数据存储位置：/usr/local/var/db/redis/
+ * 日志位置：/usr/local/var/log/redis.log
+ * 现在可以启动 Spring Boot 应用，它会自动连接到本地 Redis。
  */
 @Configuration
 public class RedisConfig {
