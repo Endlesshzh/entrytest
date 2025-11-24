@@ -49,12 +49,12 @@ class RedisDataGeneratorTest {
 
     @BeforeEach
     void setUp() {
-        // Mock Redis操作
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        when(redisTemplate.opsForList()).thenReturn(listOperations);
-        when(redisTemplate.opsForSet()).thenReturn(setOperations);
-        when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        // Mock Redis操作 - 使用lenient避免不必要的stubbing警告
+        lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        lenient().when(redisTemplate.opsForList()).thenReturn(listOperations);
+        lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        lenient().when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         // 创建生成器实例
         redisDataGenerator = new RedisDataGenerator(redisTemplate);

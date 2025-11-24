@@ -39,8 +39,8 @@ class LlmAnalysisServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 初始化配置
-        when(scriptConfig.getForbiddenPatterns()).thenReturn(
+        // 初始化配置 - 使用lenient避免不必要的stubbing警告
+        lenient().when(scriptConfig.getForbiddenPatterns()).thenReturn(
                 Arrays.asList("FLUSHALL", "FLUSHDB", "DEL *", "CONFIG")
         );
 

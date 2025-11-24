@@ -122,10 +122,9 @@ class LlmServiceFactoryTest {
     @Test
     @DisplayName("测试获取第一个可用服务 - 有可用服务")
     void testGetFirstAvailableService_Available() {
-        // Mock服务可用性
-        when(ollamaLlmService.isAvailable()).thenReturn(false);
+        // Mock服务可用性 - 只需要mock会检查到的服务
+        // getFirstAvailableService按顺序检查：OPENAI, CLAUDE, COMPASS, OLLAMA, VLLM
         when(openAILlmService.isAvailable()).thenReturn(true);
-        when(claudeLlmService.isAvailable()).thenReturn(false);
 
         // 执行获取
         LlmService service = llmServiceFactory.getFirstAvailableService();
@@ -133,6 +132,7 @@ class LlmServiceFactoryTest {
         // 验证结果
         assertNotNull(service);
         assertTrue(service.isAvailable());
+        assertEquals(openAILlmService, service);
     }
 
     @Test
@@ -177,12 +177,9 @@ class LlmServiceFactoryTest {
     @Test
     @DisplayName("测试检查是否有可用服务 - 有可用服务")
     void testHasAvailableService_True() {
-        // Mock至少一个服务可用
-        when(ollamaLlmService.isAvailable()).thenReturn(true);
-        when(openAILlmService.isAvailable()).thenReturn(false);
-        when(claudeLlmService.isAvailable()).thenReturn(false);
-        when(compassLlmService.isAvailable()).thenReturn(false);
-        when(vllmLlmService.isAvailable()).thenReturn(false);
+        // Mock至少一个服务可用 - hasAvailableService使用anyMatch，找到第一个就返回
+        // 按顺序检查：OPENAI, CLAUDE, COMPASS, OLLAMA, VLLM
+        when(openAILlmService.isAvailable()).thenReturn(true);
 
         // 执行检查
         boolean hasAvailable = llmServiceFactory.hasAvailableService();
@@ -223,19 +220,19 @@ class LlmServiceFactoryTest {
     @DisplayName("测试获取主服务 - 多个服务可用时的选择")
     void testGetPrimaryService_MultipleAvailable() {
         // Mock配置 - 主服务不可用，但多个其他服务可用
+        // getFirstAvailableService按顺序检查：OPENAI, CLAUDE, COMPASS, OLLAMA, VLLM
         when(llmConfig.getPrimaryProvider()).thenReturn(LlmProvider.OLLAMA);
         when(ollamaLlmService.isAvailable()).thenReturn(false);
         when(openAILlmService.isAvailable()).thenReturn(true);
-        when(claudeLlmService.isAvailable()).thenReturn(true);
-        when(compassLlmService.isAvailable()).thenReturn(false);
-        when(vllmLlmService.isAvailable()).thenReturn(true);
+        // 不需要mock其他服务，因为openAI已经返回true，会直接返回
 
         // 执行获取
         LlmService service = llmServiceFactory.getPrimaryService();
 
-        // 验证结果 - 应该返回第一个可用的服务
+        // 验证结果 - 应该返回第一个可用的服务（OPENAI）
         assertNotNull(service);
         assertTrue(service.isAvailable());
+        assertEquals(openAILlmService, service);
     }
 
     @Test
