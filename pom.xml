@@ -55,11 +55,23 @@
         </dependency>
 
         <!-- Groovy for scripting -->
+        <!-- 排除测试相关模块，避免与 Mockito/JUnit 5 冲突 -->
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-all</artifactId>
             <version>${groovy.version}</version>
             <type>pom</type>
+            <exclusions>
+                <!-- 排除测试模块，避免与 Mockito/JUnit 5 冲突 -->
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-test</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy-testng</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Apache Commons Pool for Redis connection pooling -->
