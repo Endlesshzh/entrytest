@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.HashOperations;
@@ -14,6 +15,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -205,11 +207,20 @@ class RedisDataGeneratorTest {
         redisDataGenerator.generateSessions(count);
 
         // 验证TTL设置（应该在1-24小时之间）
+        // expire方法签名: expire(String key, long timeout, TimeUnit unit)
+        ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
         verify(redisTemplate, times(count)).expire(
                 anyString(),
-                argThat(ttl -> (Long) ttl >= 1 && (Long) ttl <= 24),
-                any()
+                timeoutCaptor.capture(),
+                any(TimeUnit.class)
         );
+        
+        // 验证所有TTL值都在1-24之间
+        List<Long> timeouts = timeoutCaptor.getAllValues();
+        assertEquals(count, timeouts.size());
+        for (Long timeout : timeouts) {
+            assertTrue(timeout >= 1 && timeout <= 24, "TTL should be between 1 and 24 hours");
+        }
     }
 
     @Test

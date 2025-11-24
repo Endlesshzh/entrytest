@@ -368,10 +368,9 @@ class LlmAnalysisServiceTest {
     @Test
     @DisplayName("测试获取可用提供者列表")
     void testGetAvailableProviders() {
-        // Mock可用服务
+        // Mock可用服务 - getAvailableProviders只从map中获取key，不需要调用isAvailable()
         Map<LlmProvider, LlmService> availableServices = new HashMap<>();
         LlmService mockService = mock(LlmService.class);
-        when(mockService.isAvailable()).thenReturn(true);
         availableServices.put(LlmProvider.OLLAMA, mockService);
         availableServices.put(LlmProvider.OPENAI, mockService);
 
