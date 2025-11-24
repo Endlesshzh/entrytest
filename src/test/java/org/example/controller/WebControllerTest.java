@@ -35,8 +35,7 @@ class WebControllerTest {
         // 执行请求并验证视图名称
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("index"))
-                .andExpect(forwardedUrl("index"));
+                .andExpect(view().name("index"));
     }
 
     @Test

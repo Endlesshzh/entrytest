@@ -246,6 +246,19 @@ class ScriptControllerTest {
     void testExecuteScript_EmptyScript() throws Exception {
         executionRequest.setScript("");
         
+        // Mock服务返回失败结果（空脚本应该失败）
+        ScriptExecutionResult emptyScriptResult = ScriptExecutionResult.builder()
+                .success(false)
+                .result(null)
+                .error("Script cannot be empty")
+                .executionTime(0L)
+                .script("")
+                .testRun(false)
+                .build();
+        
+        when(scriptEngineService.executeScript(anyString(), anyBoolean()))
+                .thenReturn(emptyScriptResult);
+        
         // 执行请求
         mockMvc.perform(post("/api/script/execute")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -329,7 +329,8 @@ class RedisDataGeneratorTest {
         redisDataGenerator.generateTestData(largeCount, largeCount, largeCount);
 
         // 验证调用次数
-        verify(hashOperations, times(largeCount * 3)).putAll(anyString(), anyMap());
+        // generateTestData会调用: generateUsers(1000) + generateProducts(1000) + generateOrders(1000) + generateSessions(500) = 3500次
+        verify(hashOperations, times(largeCount * 3 + largeCount / 2)).putAll(anyString(), anyMap());
     }
 
     @Test
