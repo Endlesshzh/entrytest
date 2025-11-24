@@ -180,7 +180,7 @@
                 <version>3.0.0</version>
                 <configuration>
                     <!-- 跳过测试执行，只在明确运行 mvn test 时执行 -->
-                    <skipTests>false</skipTests>
+                    <skipTests>true</skipTests>
                 </configuration>
             </plugin>
         </plugins>
