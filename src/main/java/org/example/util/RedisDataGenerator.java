@@ -164,9 +164,11 @@ public class RedisDataGenerator {
      */
     public void clearTestData() {
         Set<String> keys = redisTemplate.keys("*");
-        if (!keys.isEmpty()) {
+        if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
             log.info("Cleared {} keys", keys.size());
+        } else {
+            log.info("No keys to clear");
         }
     }
 
@@ -176,11 +178,17 @@ public class RedisDataGenerator {
     public Map<String, Object> getDataStatistics() {
         Map<String, Object> stats = new HashMap<>();
 
-        stats.put("totalKeys", redisTemplate.keys("*").size());
-        stats.put("userCount", redisTemplate.keys("user:*").size());
-        stats.put("productCount", redisTemplate.keys("product:*").size());
-        stats.put("orderCount", redisTemplate.keys("order:*").size());
-        stats.put("sessionCount", redisTemplate.keys("session:*").size());
+        Set<String> allKeys = redisTemplate.keys("*");
+        Set<String> userKeys = redisTemplate.keys("user:*");
+        Set<String> productKeys = redisTemplate.keys("product:*");
+        Set<String> orderKeys = redisTemplate.keys("order:*");
+        Set<String> sessionKeys = redisTemplate.keys("session:*");
+
+        stats.put("totalKeys", allKeys != null ? allKeys.size() : 0);
+        stats.put("userCount", userKeys != null ? userKeys.size() : 0);
+        stats.put("productCount", productKeys != null ? productKeys.size() : 0);
+        stats.put("orderCount", orderKeys != null ? orderKeys.size() : 0);
+        stats.put("sessionCount", sessionKeys != null ? sessionKeys.size() : 0);
 
         return stats;
     }
