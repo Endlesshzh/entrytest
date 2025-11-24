@@ -25,8 +25,8 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <groovy.version>4.0.15</groovy.version>
-        <!-- Mockito 版本 - 与 Spring Boot 3.1.5 兼容 -->
-        <mockito.version>5.4.0</mockito.version>
+        <!-- Mockito 版本 - 与 Spring Boot 3.1.5 兼容，使用更新的版本 -->
+        <mockito.version>5.5.0</mockito.version>
     </properties>
 
     <dependencies>
@@ -152,10 +152,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- 排除默认的 Mockito，使用显式指定的版本 -->
+                <exclusion>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mockito</groupId>
+                    <artifactId>mockito-junit-jupiter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Mockito for testing - 显式指定版本确保依赖正确 -->
-        <!-- 注意：即使 spring-boot-starter-test 已包含 Mockito，显式声明可以确保版本正确 -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
