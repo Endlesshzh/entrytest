@@ -509,7 +509,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/groovy/groovy.min.js"></script>
     <script>
-        const API_BASE = '/api/script';
+        // 自动检测当前页面的基础URL
+        const getBaseUrl = () => {
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            return `${protocol}//${host}`;
+        };
+        const API_BASE = `${getBaseUrl()}/api/script`;
 
         // 初始化代码编辑器
         const editor = CodeMirror.fromTextArea(document.getElementById('scriptEditor'), {
