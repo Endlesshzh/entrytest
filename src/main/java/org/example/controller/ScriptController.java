@@ -9,6 +9,8 @@ import org.example.service.LlmAnalysisService;
 import org.example.service.ScriptEngineService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
 /**
  * REST API Controller for script operations
  */
@@ -55,10 +57,13 @@ public class ScriptController {
      */
     @PostMapping("/analyze")
     public ResponseEntity<ScriptAnalysisResult> analyzeScript( @RequestBody ScriptAnalysisRequest request) {
-        log.info("Analyzing script");
+        log.info("Analyzing script with provider: {}", request.getProvider() != null ? request.getProvider() : "auto");
 
         try {
-            ScriptAnalysisResult result = llmAnalysisService.analyzeScript(request.getScript());
+            ScriptAnalysisResult result = llmAnalysisService.analyzeScript(
+                    request.getScript(),
+                    request.getProvider()
+            );
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Script analysis failed", e);
@@ -88,5 +93,36 @@ public class ScriptController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Script service is running");
+    }
+
+    /**
+     * Get available LLM providers
+     */
+    @GetMapping("/providers")
+    public ResponseEntity<Map<String, Object>> getAvailableProviders() {
+        log.info("Getting available LLM providers");
+        
+        List<String> providers = llmAnalysisService.getAvailableProviders();
+        
+        List<Map<String, String>> allProviders = new ArrayList<>();
+        allProviders.add(createProviderInfo("OPENAI", "OpenAI", "cloud"));
+        allProviders.add(createProviderInfo("CLAUDE", "Claude", "cloud"));
+        allProviders.add(createProviderInfo("COMPASS", "Compass", "cloud"));
+        allProviders.add(createProviderInfo("OLLAMA", "Ollama (Local)", "local"));
+        allProviders.add(createProviderInfo("VLLM", "vLLM (Local)", "local"));
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("providers", providers);
+        response.put("allProviders", allProviders);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    private Map<String, String> createProviderInfo(String value, String label, String type) {
+        Map<String, String> info = new HashMap<>();
+        info.put("value", value);
+        info.put("label", label);
+        info.put("type", type);
+        return info;
     }
 }

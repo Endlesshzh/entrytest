@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redis Script Query System</title>
+    <title>Redis 脚本查询系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <style>
         * {
             margin: 0;
@@ -11,223 +13,303 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5568d3;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --card-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-gradient);
             min-height: 100vh;
             padding: 20px;
+            color: #1f2937;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow-lg);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-gradient);
             color: white;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
+            font-weight: 700;
         }
 
         .header p {
             font-size: 1.1em;
-            opacity: 0.9;
+            opacity: 0.95;
         }
 
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 24px;
             padding: 30px;
         }
 
         .panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e5e7eb;
+            box-shadow: var(--card-shadow);
         }
 
         .panel h2 {
-            color: #333;
-            margin-bottom: 15px;
+            color: #111827;
+            margin-bottom: 20px;
             font-size: 1.5em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .editor-container {
             grid-column: 1 / -1;
         }
 
-        textarea {
-            width: 100%;
-            min-height: 300px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            resize: vertical;
+        .editor-wrapper {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
             transition: border-color 0.3s;
         }
 
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
+        .editor-wrapper:focus-within {
+            border-color: var(--primary-color);
+        }
+
+        .CodeMirror {
+            height: 400px;
+            font-size: 14px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
         }
 
         .button-group {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
             flex-wrap: wrap;
         }
 
         button {
             padding: 12px 24px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-color);
             color: white;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
         .btn-success {
-            background: #28a745;
+            background: var(--success-color);
             color: white;
         }
 
-        .btn-success:hover {
-            background: #218838;
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-info {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .btn-info:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #4b5563;
             transform: translateY(-2px);
         }
 
         .btn-clear {
-            background: #dc3545;
+            background: var(--danger-color);
             color: white;
         }
 
-        .btn-clear:hover {
-            background: #c82333;
+        .btn-clear:hover:not(:disabled) {
+            background: #dc2626;
             transform: translateY(-2px);
         }
 
         .result-box {
             background: white;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
             min-height: 200px;
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
             white-space: pre-wrap;
             word-wrap: break-word;
+            line-height: 1.6;
+        }
+
+        .result-box.empty {
+            color: #9ca3af;
+            font-style: italic;
         }
 
         .success {
-            color: #28a745;
-            font-weight: bold;
+            color: var(--success-color);
+            font-weight: 600;
         }
 
         .error {
-            color: #dc3545;
-            font-weight: bold;
+            color: var(--danger-color);
+            font-weight: 600;
         }
 
-        .analysis-item {
-            margin-bottom: 15px;
-            padding: 10px;
+        .info {
+            color: var(--info-color);
+        }
+
+        .analysis-section {
+            margin-bottom: 20px;
+            padding: 20px;
             background: white;
-            border-radius: 5px;
-            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: var(--card-shadow);
         }
 
-        .analysis-item h3 {
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 1.1em;
+        .analysis-section h3 {
+            color: #111827;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .score {
-            display: inline-block;
-            padding: 5px 15px;
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 14px;
             margin-left: 10px;
         }
 
         .score-high {
-            background: #d4edda;
-            color: #155724;
+            background: #d1fae5;
+            color: #065f46;
         }
 
         .score-medium {
-            background: #fff3cd;
-            color: #856404;
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .score-low {
-            background: #f8d7da;
-            color: #721c24;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-safe {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-unsafe {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .issue-list {
             list-style: none;
             padding-left: 0;
+            margin-top: 12px;
         }
 
         .issue-list li {
-            padding: 5px 0;
-            padding-left: 20px;
+            padding: 8px 0;
+            padding-left: 24px;
             position: relative;
+            color: #374151;
         }
 
         .issue-list li:before {
             content: "•";
             position: absolute;
-            left: 5px;
-            color: #667eea;
+            left: 8px;
+            color: var(--primary-color);
             font-weight: bold;
+            font-size: 18px;
         }
 
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 40px;
         }
 
         .loading.active {
@@ -235,13 +317,13 @@
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -250,84 +332,211 @@
         }
 
         .example-scripts {
-            margin-top: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .example-scripts strong {
+            display: block;
+            margin-bottom: 12px;
+            color: #374151;
         }
 
         .example-btn {
-            background: #17a2b8;
-            color: white;
+            background: #e0e7ff;
+            color: var(--primary-color);
             padding: 8px 16px;
-            margin: 5px;
+            margin: 4px 8px 4px 0;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
         .example-btn:hover {
-            background: #138496;
+            background: #c7d2fe;
+            transform: translateY(-1px);
         }
 
-        .status-badge {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
+        .execution-info {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
         }
 
-        .status-safe {
-            background: #d4edda;
-            color: #155724;
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            font-size: 13px;
         }
 
-        .status-unsafe {
-            background: #f8d7da;
-            color: #721c24;
+        .result-content {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 6px;
+            margin-top: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .json-view {
+            color: #111827;
+        }
+
+        .llm-analysis-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            color: #374151;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #llmProvider:hover {
+            border-color: var(--primary-color);
+        }
+
+        #llmProvider:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .provider-cloud {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .provider-local {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .provider-available {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .provider-unavailable {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Redis Script Query System</h1>
-            <p>基于Groovy脚本的动态Redis查询系统 - 支持LLM智能分析</p>
+            <h1>🚀 Redis 脚本查询系统</h1>
+            <p>基于 Groovy 脚本的动态 Redis 查询系统 - 支持 LLM 智能分析</p>
         </div>
 
         <div class="main-content">
             <!-- Script Editor -->
             <div class="panel editor-container">
                 <h2>📝 脚本编辑器</h2>
-                <textarea id="scriptEditor" placeholder="在此输入Groovy脚本...
-
-示例:
-// 获取单个键值
-def value = redis.get('mykey')
-return value
-
-// 获取Hash所有字段
-def data = redis.hgetAll('user:1001')
-return data
-
-// 查询多个键
-def keys = redis.keys('user:*')
-return keys
-"></textarea>
+                
+                <!-- LLM Provider Selector -->
+                <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <label for="llmProvider" style="font-weight: 600; color: #374151; font-size: 14px;">
+                        🤖 选择大模型提供商：
+                    </label>
+                    <select id="llmProvider" style="
+                        padding: 8px 16px;
+                        border: 2px solid #e5e7eb;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        background: white;
+                        color: #111827;
+                        cursor: pointer;
+                        min-width: 200px;
+                        transition: border-color 0.2s;
+                    " onchange="updateProviderStatus()">
+                        <option value="">自动选择（使用默认）</option>
+                    </select>
+                    <span id="providerStatus" style="
+                        padding: 4px 12px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        display: none;
+                    "></span>
+                </div>
+                
+                <div class="editor-wrapper">
+                    <textarea id="scriptEditor"></textarea>
+                </div>
 
                 <div class="button-group">
-                    <button class="btn-primary" onclick="executeScript()">▶️ 执行脚本</button>
-                    <button class="btn-success" onclick="testScript()">🧪 试运行</button>
-                    <button class="btn-secondary" onclick="analyzeScript()">🤖 LLM分析</button>
-                    <button class="btn-clear" onclick="clearAll()">🗑️ 清空</button>
+                    <button class="btn-primary" onclick="executeScript()" id="btnExecute">
+                        <span>▶️</span> 执行脚本
+                    </button>
+                    <button class="btn-success" onclick="testScript()" id="btnTest">
+                        <span>🧪</span> 试运行
+                    </button>
+                    <button class="btn-info" onclick="analyzeScript()" id="btnAnalyze">
+                        <span>🤖</span> LLM 分析
+                    </button>
+                    <button class="btn-secondary" onclick="clearEditor()">
+                        <span>🗑️</span> 清空编辑器
+                    </button>
+                    <button class="btn-clear" onclick="clearAll()">
+                        <span>🔄</span> 清空全部
+                    </button>
                 </div>
 
                 <div class="example-scripts">
-                    <strong>示例脚本:</strong>
+                    <strong>📚 示例脚本：</strong>
                     <button class="example-btn" onclick="loadExample(1)">获取单个值</button>
-                    <button class="example-btn" onclick="loadExample(2)">获取Hash</button>
+                    <button class="example-btn" onclick="loadExample(2)">获取 Hash</button>
                     <button class="example-btn" onclick="loadExample(3)">查询键列表</button>
-                    <button class="example-btn" onclick="loadExample(4)">获取List范围</button>
+                    <button class="example-btn" onclick="loadExample(4)">获取 List 范围</button>
+                    <button class="example-btn" onclick="loadExample(5)">批量获取</button>
+                    <button class="example-btn" onclick="loadExample(6)">获取 Set 成员</button>
                 </div>
             </div>
 
@@ -336,57 +545,153 @@ return keys
                 <h2>📊 执行结果</h2>
                 <div class="loading" id="execLoading">
                     <div class="spinner"></div>
-                    <p>执行中...</p>
+                    <p>正在执行脚本...</p>
                 </div>
-                <div class="result-box" id="executionResult">等待执行...</div>
+                <div class="result-box empty" id="executionResult">等待执行脚本...</div>
             </div>
 
             <!-- Analysis Result -->
             <div class="panel">
-                <h2>🔍 LLM分析结果</h2>
+                <h2>🔍 LLM 分析结果</h2>
                 <div class="loading" id="analysisLoading">
                     <div class="spinner"></div>
-                    <p>分析中...</p>
+                    <p>正在分析脚本...</p>
                 </div>
-                <div id="analysisResult">等待分析...</div>
+                <div id="analysisResult">
+                    <div class="result-box empty">等待分析脚本...</div>
+                </div>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/groovy/groovy.min.js"></script>
     <script>
-        const API_BASE = '/api/script';
+        const API_BASE = 'http://localhost:8080/api/script';
+        
+        // LLM Provider Management
+        let availableProviders = [];
+        let allProviders = [];
+        
+        // Load available LLM providers on page load
+        async function loadProviders() {
+            try {
+                const response = await fetch(`${API_BASE}/providers`);
+                const data = await response.json();
+                availableProviders = data.providers || [];
+                allProviders = data.allProviders || [];
+                
+                const select = document.getElementById('llmProvider');
+                // Clear existing options except the first one
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // Add all providers to select
+                allProviders.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider.value;
+                    option.textContent = provider.label + (provider.type === 'local' ? ' (本地)' : '');
+                    option.dataset.type = provider.type;
+                    option.dataset.available = availableProviders.includes(provider.label) ? 'true' : 'false';
+                    select.appendChild(option);
+                });
+                
+                updateProviderStatus();
+            } catch (error) {
+                console.error('Failed to load providers:', error);
+            }
+        }
+        
+        function updateProviderStatus() {
+            const select = document.getElementById('llmProvider');
+            const status = document.getElementById('providerStatus');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (!selectedOption || !selectedOption.value) {
+                status.style.display = 'none';
+                return;
+            }
+            
+            const isAvailable = selectedOption.dataset.available === 'true';
+            const type = selectedOption.dataset.type;
+            
+            status.style.display = 'inline-block';
+            status.className = isAvailable ? 'provider-available' : 'provider-unavailable';
+            status.textContent = isAvailable 
+                ? '✓ 可用' 
+                : '✗ 不可用（将使用默认提供商）';
+        }
+        
+        // Load providers when page loads
+        window.addEventListener('load', loadProviders);
 
-        // Example scripts
+        // 初始化代码编辑器
+        const editor = CodeMirror.fromTextArea(document.getElementById('scriptEditor'), {
+            lineNumbers: true,
+            mode: 'groovy',
+            theme: 'monokai',
+            indentUnit: 4,
+            indentWithTabs: false,
+            lineWrapping: true,
+            autofocus: true,
+            placeholder: '在此输入 Groovy 脚本...\n\n示例:\n// 获取单个键值\ndef value = redis.get(\'mykey\')\nreturn value'
+        });
+
+        // 示例脚本
         const examples = {
             1: `// 获取单个键的值
 def value = redis.get('mykey')
 return value`,
-            2: `// 获取Hash的所有字段
+            2: `// 获取 Hash 的所有字段
 def userData = redis.hgetAll('user:1001')
 return userData`,
             3: `// 查询匹配的键列表
 def keys = redis.keys('user:*')
 return keys`,
-            4: `// 获取List的范围数据
+            4: `// 获取 List 的范围数据
 def items = redis.lrange('mylist', 0, 10)
-return items`
+return items`,
+            5: `// 批量获取多个键的值
+def keys = ['key1', 'key2', 'key3']
+def values = redis.mget(keys.toArray(new String[0]))
+return values`,
+            6: `// 获取 Set 的所有成员
+def members = redis.smembers('myset')
+return members`
         };
 
         function loadExample(num) {
-            document.getElementById('scriptEditor').value = examples[num];
+            editor.setValue(examples[num] || '');
+            editor.focus();
+        }
+
+        function setLoading(elementId, loading) {
+            const loadingEl = document.getElementById(elementId);
+            if (loading) {
+                loadingEl.classList.add('active');
+            } else {
+                loadingEl.classList.remove('active');
+            }
+        }
+
+        function setButtonsDisabled(disabled) {
+            ['btnExecute', 'btnTest', 'btnAnalyze'].forEach(id => {
+                document.getElementById(id).disabled = disabled;
+            });
         }
 
         async function executeScript() {
-            const script = document.getElementById('scriptEditor').value.trim();
+            const script = editor.getValue().trim();
             if (!script) {
                 alert('请输入脚本');
                 return;
             }
 
             const resultDiv = document.getElementById('executionResult');
-            const loading = document.getElementById('execLoading');
-
-            loading.classList.add('active');
+            setLoading('execLoading', true);
+            setButtonsDisabled(true);
+            resultDiv.className = 'result-box';
             resultDiv.innerHTML = '';
 
             try {
@@ -405,23 +710,24 @@ return items`
                 const result = await response.json();
                 displayExecutionResult(result);
             } catch (error) {
-                resultDiv.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                resultDiv.innerHTML = `<span class="error">❌ 错误: ${error.message}</span>`;
             } finally {
-                loading.classList.remove('active');
+                setLoading('execLoading', false);
+                setButtonsDisabled(false);
             }
         }
 
         async function testScript() {
-            const script = document.getElementById('scriptEditor').value.trim();
+            const script = editor.getValue().trim();
             if (!script) {
                 alert('请输入脚本');
                 return;
             }
 
             const resultDiv = document.getElementById('executionResult');
-            const loading = document.getElementById('execLoading');
-
-            loading.classList.add('active');
+            setLoading('execLoading', true);
+            setButtonsDisabled(true);
+            resultDiv.className = 'result-box';
             resultDiv.innerHTML = '';
 
             try {
@@ -440,63 +746,90 @@ return items`
                 const result = await response.json();
                 displayExecutionResult(result);
             } catch (error) {
-                resultDiv.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                resultDiv.innerHTML = `<span class="error">❌ 错误: ${error.message}</span>`;
             } finally {
-                loading.classList.remove('active');
+                setLoading('execLoading', false);
+                setButtonsDisabled(false);
             }
         }
 
         async function analyzeScript() {
-            const script = document.getElementById('scriptEditor').value.trim();
+            const script = editor.getValue().trim();
             if (!script) {
                 alert('请输入脚本');
                 return;
             }
 
             const resultDiv = document.getElementById('analysisResult');
-            const loading = document.getElementById('analysisLoading');
-
-            loading.classList.add('active');
+            setLoading('analysisLoading', true);
+            setButtonsDisabled(true);
             resultDiv.innerHTML = '';
 
+            // Get selected provider
+            const providerSelect = document.getElementById('llmProvider');
+            const selectedProvider = providerSelect.value || null;
+
             try {
+                const requestBody = {
+                    script: script
+                };
+                
+                // Only include provider if one is selected
+                if (selectedProvider) {
+                    requestBody.provider = selectedProvider;
+                }
+                
                 const response = await fetch(`${API_BASE}/analyze`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        script: script
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await response.json();
                 displayAnalysisResult(result);
             } catch (error) {
-                resultDiv.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                resultDiv.innerHTML = `<div class="result-box"><span class="error">❌ 错误: ${error.message}</span></div>`;
             } finally {
-                loading.classList.remove('active');
+                setLoading('analysisLoading', false);
+                setButtonsDisabled(false);
             }
         }
 
         function displayExecutionResult(result) {
             const resultDiv = document.getElementById('executionResult');
-
             let html = '';
+
             if (result.success) {
-                html += `<span class="success">✓ 执行成功</span>\n`;
-                html += `执行时间: ${result.executionTime}ms\n`;
-                if (result.testRun) {
-                    html += `模式: 测试运行\n`;
+                html += `<div class="execution-info">
+                    <span class="info-item success">✓ 执行成功</span>
+                    <span class="info-item">⏱️ 执行时间: ${result.executionTime}ms</span>
+                    ${result.testRun ? '<span class="info-item info">🧪 测试运行模式</span>' : ''}
+                </div>`;
+                
+                html += '<div class="result-content">';
+                html += '<strong>结果：</strong><br>';
+                
+                if (result.result !== null && result.result !== undefined) {
+                    try {
+                        html += `<pre class="json-view">${JSON.stringify(result.result, null, 2)}</pre>`;
+                    } catch (e) {
+                        html += `<pre>${String(result.result)}</pre>`;
+                    }
+                } else {
+                    html += '<span class="info">null</span>';
                 }
-                html += `\n结果:\n`;
-                html += JSON.stringify(result.result, null, 2);
+                html += '</div>';
             } else {
-                html += `<span class="error">✗ 执行失败</span>\n`;
-                html += `错误: ${result.error}\n`;
-                if (result.executionTime) {
-                    html += `执行时间: ${result.executionTime}ms\n`;
-                }
+                html += `<div class="execution-info">
+                    <span class="info-item error">✗ 执行失败</span>
+                    ${result.executionTime ? `<span class="info-item">⏱️ 执行时间: ${result.executionTime}ms</span>` : ''}
+                </div>`;
+                html += `<div class="result-content">
+                    <strong>错误信息：</strong><br>
+                    <span class="error">${escapeHtml(result.error || '未知错误')}</span>
+                </div>`;
             }
 
             resultDiv.innerHTML = html;
@@ -504,72 +837,73 @@ return items`
 
         function displayAnalysisResult(result) {
             const resultDiv = document.getElementById('analysisResult');
-
             let html = '';
 
-            // Security Score
-            html += '<div class="analysis-item">';
+            // 安全性评分
+            html += '<div class="analysis-section">';
             html += '<h3>🔒 安全性评分';
-            html += `<span class="score ${getScoreClass(result.securityScore)}">${result.securityScore}/100</span>`;
+            html += `<span class="score-badge ${getScoreClass(result.securityScore)}">${result.securityScore}/100</span>`;
             html += `<span class="status-badge ${result.safeToExecute ? 'status-safe' : 'status-unsafe'}">`;
-            html += result.safeToExecute ? '安全' : '不安全';
+            html += result.safeToExecute ? '✓ 安全' : '✗ 不安全';
             html += '</span></h3>';
+            
             if (result.securityIssues && result.securityIssues.length > 0) {
                 html += '<ul class="issue-list">';
                 result.securityIssues.forEach(issue => {
-                    html += `<li>${issue}</li>`;
+                    html += `<li>${escapeHtml(issue)}</li>`;
                 });
                 html += '</ul>';
             } else {
-                html += '<p>未发现安全问题</p>';
+                html += '<p style="color: #059669; margin-top: 8px;">✓ 未发现安全问题</p>';
             }
             html += '</div>';
 
-            // Quality Score
-            html += '<div class="analysis-item">';
+            // 代码质量评分
+            html += '<div class="analysis-section">';
             html += '<h3>⭐ 代码质量评分';
-            html += `<span class="score ${getScoreClass(result.qualityScore)}">${result.qualityScore}/100</span>`;
+            html += `<span class="score-badge ${getScoreClass(result.qualityScore)}">${result.qualityScore}/100</span>`;
             html += '</h3>';
+            
             if (result.qualityIssues && result.qualityIssues.length > 0) {
                 html += '<ul class="issue-list">';
                 result.qualityIssues.forEach(issue => {
-                    html += `<li>${issue}</li>`;
+                    html += `<li>${escapeHtml(issue)}</li>`;
                 });
                 html += '</ul>';
             } else {
-                html += '<p>代码质量良好</p>';
+                html += '<p style="color: #059669; margin-top: 8px;">✓ 代码质量良好</p>';
             }
             html += '</div>';
 
-            // Performance Suggestions
+            // 性能建议
             if (result.performanceSuggestions && result.performanceSuggestions.length > 0) {
-                html += '<div class="analysis-item">';
-                html += '<h3>⚡ 性能建议</h3>';
+                html += '<div class="analysis-section">';
+                html += '<h3>⚡ 性能优化建议</h3>';
                 html += '<ul class="issue-list">';
                 result.performanceSuggestions.forEach(suggestion => {
-                    html += `<li>${suggestion}</li>`;
+                    html += `<li>${escapeHtml(suggestion)}</li>`;
                 });
                 html += '</ul>';
                 html += '</div>';
             }
 
-            // Best Practices
+            // 最佳实践建议
             if (result.bestPractices && result.bestPractices.length > 0) {
-                html += '<div class="analysis-item">';
+                html += '<div class="analysis-section">';
                 html += '<h3>📚 最佳实践建议</h3>';
                 html += '<ul class="issue-list">';
                 result.bestPractices.forEach(practice => {
-                    html += `<li>${practice}</li>`;
+                    html += `<li>${escapeHtml(practice)}</li>`;
                 });
                 html += '</ul>';
                 html += '</div>';
             }
 
-            // LLM Analysis
+            // LLM 深度分析
             if (result.llmAnalysis) {
-                html += '<div class="analysis-item">';
-                html += '<h3>🤖 LLM深度分析</h3>';
-                html += `<p style="white-space: pre-wrap;">${result.llmAnalysis}</p>`;
+                html += '<div class="analysis-section">';
+                html += '<h3>🤖 LLM 深度分析</h3>';
+                html += `<div class="llm-analysis-text">${escapeHtml(result.llmAnalysis)}</div>`;
                 html += '</div>';
             }
 
@@ -582,11 +916,33 @@ return items`
             return 'score-low';
         }
 
-        function clearAll() {
-            document.getElementById('scriptEditor').value = '';
-            document.getElementById('executionResult').innerHTML = '等待执行...';
-            document.getElementById('analysisResult').innerHTML = '等待分析...';
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
+
+        function clearEditor() {
+            editor.setValue('');
+            editor.focus();
+        }
+
+        function clearAll() {
+            editor.setValue('');
+            document.getElementById('executionResult').innerHTML = '等待执行脚本...';
+            document.getElementById('executionResult').className = 'result-box empty';
+            document.getElementById('analysisResult').innerHTML = '<div class="result-box empty">等待分析脚本...</div>';
+        }
+
+        // 快捷键支持
+        editor.setOption("extraKeys", {
+            "Ctrl-Enter": function() {
+                executeScript();
+            },
+            "Ctrl-Shift-Enter": function() {
+                testScript();
+            }
+        });
     </script>
 </body>
 </html>

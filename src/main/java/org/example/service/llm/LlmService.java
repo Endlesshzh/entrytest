@@ -1,7 +1,5 @@
 package org.example.service.llm;
 
-import org.example.model.ScriptAnalysisResult;
-
 /**
  * LLM Service Interface
  * All LLM providers must implement this interface

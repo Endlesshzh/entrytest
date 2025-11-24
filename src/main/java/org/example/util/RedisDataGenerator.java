@@ -132,6 +132,7 @@ public class RedisDataGenerator {
     /**
      * Generate metrics data
      */
+    @SuppressWarnings("null")
     public void generateMetrics() {
         // Page views
         for (int i = 0; i < 100; i++) {

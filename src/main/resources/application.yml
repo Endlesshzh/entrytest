@@ -5,6 +5,11 @@ spring:
   application:
     name: redis-script-query-system
 
+  # DevTools Configuration - 完全禁用热重启
+  devtools:
+    restart:
+      enabled: false
+
   # Redis Configuration
   redis:
     host: localhost
