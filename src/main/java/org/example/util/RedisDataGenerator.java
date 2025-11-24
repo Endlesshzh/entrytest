@@ -46,7 +46,7 @@ public class RedisDataGenerator {
 
         for (int i = 1; i <= count; i++) {
             String key = "user:" + i;
-            Map<String, Object> userData = new HashMap<>();
+            Map<String, String> userData = new HashMap<>();
             userData.put("id", String.valueOf(i));
             userData.put("name", "用户" + i);
             userData.put("age", String.valueOf(20 + random.nextInt(40)));
@@ -72,7 +72,7 @@ public class RedisDataGenerator {
 
         for (int i = 1; i <= count; i++) {
             String key = "product:" + i;
-            Map<String, Object> productData = new HashMap<>();
+            Map<String, String> productData = new HashMap<>();
             productData.put("id", String.valueOf(i));
             productData.put("name", "商品" + i);
             productData.put("category", categories[random.nextInt(categories.length)]);
@@ -96,7 +96,7 @@ public class RedisDataGenerator {
 
         for (int i = 1; i <= count; i++) {
             String key = "order:" + i;
-            Map<String, Object> orderData = new HashMap<>();
+            Map<String, String> orderData = new HashMap<>();
             orderData.put("id", String.valueOf(i));
             orderData.put("userId", String.valueOf(1 + random.nextInt(100)));
             orderData.put("productId", String.valueOf(1 + random.nextInt(50)));
@@ -117,9 +117,9 @@ public class RedisDataGenerator {
     public void generateSessions(int count) {
         for (int i = 1; i <= count; i++) {
             String key = "session:" + UUID.randomUUID().toString();
-            Map<String, Object> sessionData = new HashMap<>();
+            Map<String, String> sessionData = new HashMap<>();
             sessionData.put("userId", String.valueOf(1 + random.nextInt(100)));
-            sessionData.put("loginTime", System.currentTimeMillis());
+            sessionData.put("loginTime", String.valueOf(System.currentTimeMillis()));
             sessionData.put("ip", "192.168." + random.nextInt(255) + "." + random.nextInt(255));
 
             redisTemplate.opsForHash().putAll(key, sessionData);
