@@ -51,10 +51,10 @@ class ScriptEngineServiceTest {
         scriptConfig.setCacheSize(100);
         scriptConfig.setForbiddenPatterns(Arrays.asList("FLUSHALL", "FLUSHDB", "DEL *", "CONFIG"));
 
-        // Mock Redis操作
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
-        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+        // Mock Redis操作 - 使用 lenient() 允许某些测试不使用这些 stub
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
 
         // 创建服务实例
         scriptEngineService = new ScriptEngineService(redisTemplate, scriptConfig);
