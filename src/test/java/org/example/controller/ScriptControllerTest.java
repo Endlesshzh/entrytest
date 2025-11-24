@@ -172,7 +172,7 @@ class ScriptControllerTest {
     @DisplayName("测试分析脚本接口 - 成功场景")
     void testAnalyzeScript_Success() throws Exception {
         // Mock服务返回分析结果
-        when(llmAnalysisService.analyzeScript(anyString()))
+        when(llmAnalysisService.analyzeScript(anyString(), any()))
                 .thenReturn(analysisResult);
 
         // 执行请求
@@ -202,7 +202,7 @@ class ScriptControllerTest {
                 .llmAnalysis("Analysis failed: LLM service unavailable")
                 .build();
 
-        when(llmAnalysisService.analyzeScript(anyString()))
+        when(llmAnalysisService.analyzeScript(anyString(), any()))
                 .thenReturn(failureResult);
 
         // 执行请求
@@ -219,7 +219,7 @@ class ScriptControllerTest {
     @DisplayName("测试分析脚本接口 - 异常场景")
     void testAnalyzeScript_Exception() throws Exception {
         // Mock服务抛出异常
-        when(llmAnalysisService.analyzeScript(anyString()))
+        when(llmAnalysisService.analyzeScript(anyString(), any()))
                 .thenThrow(new RuntimeException("LLM service error"));
 
         // 执行请求
@@ -318,7 +318,7 @@ class ScriptControllerTest {
                 .llmAnalysis("该脚本包含危险操作，不建议执行")
                 .build();
 
-        when(llmAnalysisService.analyzeScript(anyString()))
+        when(llmAnalysisService.analyzeScript(anyString(), any()))
                 .thenReturn(unsafeResult);
 
         // 执行请求
