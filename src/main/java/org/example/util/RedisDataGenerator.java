@@ -134,10 +134,10 @@ public class RedisDataGenerator {
      */
     @SuppressWarnings("null")
     public void generateMetrics() {
-        // Page views
+        // Page views - store as string since RedisTemplate uses StringRedisSerializer
         for (int i = 0; i < 100; i++) {
-            redisTemplate.opsForList().rightPush("metrics:pageviews",
-                Map.of("page", "/page" + (i % 10), "timestamp", System.currentTimeMillis()));
+            String pageView = "/page" + (i % 10) + ":" + System.currentTimeMillis();
+            redisTemplate.opsForList().rightPush("metrics:pageviews", pageView);
         }
 
         // Active users set
