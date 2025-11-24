@@ -7,6 +7,7 @@ import org.example.model.ScriptExecutionRequest;
 import org.example.model.ScriptExecutionResult;
 import org.example.service.LlmAnalysisService;
 import org.example.service.ScriptEngineService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,15 +41,19 @@ public class ScriptController {
                     request.getScript(),
                     request.isTestRun()
             );
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(result);
         } catch (Exception e) {
             log.error("Script execution failed", e);
-            return ResponseEntity.ok(ScriptExecutionResult.builder()
-                    .success(false)
-                    .error("Execution failed: " + e.getMessage())
-                    .script(request.getScript())
-                    .testRun(request.isTestRun())
-                    .build());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ScriptExecutionResult.builder()
+                            .success(false)
+                            .error("Execution failed: " + e.getMessage())
+                            .script(request.getScript())
+                            .testRun(request.isTestRun())
+                            .build());
         }
     }
 
@@ -64,15 +69,23 @@ public class ScriptController {
                     request.getScript(),
                     request.getProvider()
             );
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(result);
         } catch (Exception e) {
             log.error("Script analysis failed", e);
-            return ResponseEntity.ok(ScriptAnalysisResult.builder()
-                    .securityScore(0)
-                    .qualityScore(0)
-                    .safeToExecute(false)
-                    .llmAnalysis("Analysis failed: " + e.getMessage())
-                    .build());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ScriptAnalysisResult.builder()
+                            .securityScore(0)
+                            .securityIssues(java.util.Collections.emptyList())
+                            .qualityScore(0)
+                            .qualityIssues(java.util.Collections.emptyList())
+                            .performanceSuggestions(java.util.Collections.emptyList())
+                            .bestPractices(java.util.Collections.emptyList())
+                            .safeToExecute(false)
+                            .llmAnalysis("Analysis failed: " + e.getMessage())
+                            .build());
         }
     }
 
@@ -115,7 +128,9 @@ public class ScriptController {
         response.put("providers", providers);
         response.put("allProviders", allProviders);
         
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
     
     private Map<String, String> createProviderInfo(String value, String label, String type) {
