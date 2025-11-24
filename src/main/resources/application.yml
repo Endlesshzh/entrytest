@@ -5,6 +5,19 @@ spring:
   application:
     name: redis-script-query-system
 
+  # DevTools Configuration - 排除不需要监控的目录
+  devtools:
+    restart:
+      enabled: true
+      # 排除日志目录，避免日志文件变化触发重启
+      exclude: logs/**,target/classes/META-INF/maven/**
+      # 排除其他可能频繁变化的文件
+      additional-exclude: logs/**,*.log
+      # 触发重启的轮询间隔（毫秒），可以适当增大以减少检查频率
+      poll-interval: 2s
+      # 静默期，文件变化后等待一段时间再重启，避免频繁重启
+      quiet-period: 1s
+
   # Redis Configuration
   redis:
     host: localhost
