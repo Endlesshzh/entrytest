@@ -49,14 +49,34 @@ public class LlmAnalysisService {
 
         // Enhance with LLM analysis
         try {
-            LlmService llmService = provider != null
-                    ? llmServiceFactory.getService(provider)
-                    : llmServiceFactory.getPrimaryService();
+            LlmService llmService;
+            
+            if (provider != null) {
+                // 如果指定了 provider，先尝试使用它
+                LlmService requestedService = llmServiceFactory.getService(provider);
+                
+                // 检查请求的服务是否可用
+                if (requestedService.isAvailable()) {
+                    llmService = requestedService;
+                    log.debug("Using requested provider: {}", provider);
+                } else {
+                    // 如果请求的服务不可用，记录警告并回退到可用的服务
+                    log.warn("Requested provider {} is not available, falling back to available provider", provider);
+                    llmService = llmServiceFactory.getFirstAvailableService();
+                }
+            } else {
+                // 如果没有指定 provider，使用主服务（会自动回退）
+                llmService = llmServiceFactory.getPrimaryService();
+            }
 
             String llmAnalysis = llmService.analyzeScript(script);
             basicAnalysis.setLlmAnalysis(llmAnalysis);
 
             log.info("LLM analysis completed successfully using {}", llmService.getProvider());
+        } catch (IllegalStateException e) {
+            // 没有可用的服务
+            log.error("No LLM service is available", e);
+            basicAnalysis.setLlmAnalysis("LLM分析无法使用: 没有可用的LLM服务");
         } catch (Exception e) {
             log.error("LLM分析失败，使用原始分析", e);
             basicAnalysis.setLlmAnalysis("LLM分析无法使用: " + e.getMessage());

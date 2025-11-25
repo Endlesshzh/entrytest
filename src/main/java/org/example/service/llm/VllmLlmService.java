@@ -41,6 +41,10 @@ public class VllmLlmService implements LlmService {
 
     @Override
     public String analyzeScript(String script) throws Exception {
+        if (llmConfig.getVllm() == null || llmConfig.getVllm().getApiUrl() == null) {
+            throw new IllegalStateException("vLLM configuration is missing");
+        }
+
         log.info("Analyzing script with vLLM, model: {}", llmConfig.getVllm().getModel());
 
         String prompt = buildAnalysisPrompt(script);
