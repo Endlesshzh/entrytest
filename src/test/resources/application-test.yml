@@ -57,6 +57,26 @@ llm:
   timeout: 30
   temperature: 0.3
   max-tokens: 1000
+  
+  # OpenAI Configuration (for testing)
+  openai:
+    api-url: https://api.openai.com/v1/chat/completions
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-3.5-turbo
+  
+  # Claude Configuration (for testing)
+  claude:
+    api-url: https://api.anthropic.com/v1/messages
+    api-key: ${CLAUDE_API_KEY:}
+    model: claude-3-sonnet-20240229
+  
+  # Compass Configuration (for testing)
+  compass:
+    api-url: ${COMPASS_API_URL:https://compass.llm.shopee.io/v1/chat/completions}
+    api-key: ${COMPASS_API_KEY:}
+    model: ${COMPASS_MODEL:compass-1}
+  
+  # Ollama Configuration (Local - default for testing)
   ollama:
     api-url: http://localhost:11434/api/generate
     model: llama2

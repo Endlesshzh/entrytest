@@ -42,44 +42,87 @@ public class LlmAnalysisService {
      * 分析和执行LLM服务，指定LLM提供者
      */
     public ScriptAnalysisResult analyzeScript(String script, LlmProvider provider) {
-        log.info("Analyzing script with LLM, provider: {}", provider != null ? provider : "auto");
+        log.info("开始分析脚本，LLM提供者: {}", provider != null ? provider : "auto");
+        log.debug("分析步骤 1/4: 开始基础静态分析");
 
         // Perform basic static analysis first
         ScriptAnalysisResult basicAnalysis = performBasicAnalysis(script);
+        log.debug("分析步骤 2/4: 基础静态分析完成，安全性评分: {}, 质量评分: {}", 
+                basicAnalysis.getSecurityScore(), basicAnalysis.getQualityScore());
 
         // Enhance with LLM analysis
+        log.debug("分析步骤 3/4: 开始LLM深度分析");
         try {
             LlmService llmService;
             
             if (provider != null) {
                 // 如果指定了 provider，先尝试使用它
+                log.debug("检查请求的LLM服务: {}", provider);
                 LlmService requestedService = llmServiceFactory.getService(provider);
                 
                 // 检查请求的服务是否可用
                 if (requestedService.isAvailable()) {
                     llmService = requestedService;
-                    log.debug("Using requested provider: {}", provider);
+                    log.info("使用请求的LLM提供者: {}", provider);
                 } else {
                     // 如果请求的服务不可用，记录警告并回退到可用的服务
-                    log.warn("Requested provider {} is not available, falling back to available provider", provider);
+                    log.warn("请求的LLM提供者 {} 不可用，回退到可用的提供者", provider);
                     llmService = llmServiceFactory.getFirstAvailableService();
+                    log.info("回退到可用的LLM提供者: {}", llmService.getProvider());
                 }
             } else {
                 // 如果没有指定 provider，使用主服务（会自动回退）
+                log.debug("使用主LLM服务（自动选择）");
                 llmService = llmServiceFactory.getPrimaryService();
+                log.info("使用主LLM提供者: {}", llmService.getProvider());
             }
 
+            log.info("正在调用LLM服务进行分析，这可能需要一些时间...");
+            long startTime = System.currentTimeMillis();
             String llmAnalysis = llmService.analyzeScript(script);
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("LLM分析完成，耗时: {}ms", duration);
+            
             basicAnalysis.setLlmAnalysis(llmAnalysis);
+            log.debug("分析步骤 4/4: LLM深度分析完成");
 
-            log.info("LLM analysis completed successfully using {}", llmService.getProvider());
+            log.info("脚本分析完成，使用LLM提供者: {}", llmService.getProvider());
         } catch (IllegalStateException e) {
             // 没有可用的服务
-            log.error("No LLM service is available", e);
-            basicAnalysis.setLlmAnalysis("LLM分析无法使用: 没有可用的LLM服务");
+            log.error("没有可用的LLM服务", e);
+            basicAnalysis.setLlmAnalysis("LLM分析无法使用: 没有可用的LLM服务。请检查LLM服务配置和连接状态。");
+        } catch (java.net.SocketTimeoutException e) {
+            log.error("LLM分析超时", e);
+            int timeout = llmServiceFactory.getLlmConfig().getTimeout();
+            basicAnalysis.setLlmAnalysis("LLM分析超时: 请求时间超过" + timeout + "秒。\n\n" +
+                    "可能的原因：\n" +
+                    "1. LLM服务响应较慢（本地模型可能需要更长时间）\n" +
+                    "2. 网络连接问题\n" +
+                    "3. 模型正在加载中\n\n" +
+                    "建议：\n" +
+                    "- 检查LLM服务是否正常运行\n" +
+                    "- 尝试使用更快的模型或云服务\n" +
+                    "- 增加超时时间配置（当前: " + timeout + "秒，可在application.yml中修改llm.timeout）");
+        } catch (java.io.IOException e) {
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("timeout")) {
+                log.error("LLM分析超时（IO异常）", e);
+                basicAnalysis.setLlmAnalysis("LLM分析超时: " + errorMsg + 
+                        "\n\n请检查LLM服务是否正常运行，或尝试增加超时时间配置。");
+            } else {
+                log.error("LLM分析IO错误", e);
+                basicAnalysis.setLlmAnalysis("LLM分析失败（IO错误）: " + errorMsg);
+            }
         } catch (Exception e) {
-            log.error("LLM分析失败，使用原始分析", e);
-            basicAnalysis.setLlmAnalysis("LLM分析无法使用: " + e.getMessage());
+            log.error("LLM分析失败", e);
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("timeout") || 
+                errorMsg != null && errorMsg.contains("Read timed out")) {
+                basicAnalysis.setLlmAnalysis("LLM分析超时: " + errorMsg + 
+                        "\n\n建议检查LLM服务状态或增加超时时间配置。");
+            } else {
+                basicAnalysis.setLlmAnalysis("LLM分析无法使用: " + errorMsg);
+            }
         }
 
         return basicAnalysis;

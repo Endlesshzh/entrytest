@@ -763,7 +763,37 @@ return members`
             const resultDiv = document.getElementById('analysisResult');
             setLoading('analysisLoading', true);
             setButtonsDisabled(true);
-            resultDiv.innerHTML = '';
+            
+            // 显示分析过程
+            let analysisStep = 0;
+            const steps = [
+                '🔍 开始分析脚本...',
+                '📊 执行基础静态分析（检查安全性、代码质量）...',
+                '🤖 调用LLM服务进行深度分析（这可能需要一些时间，请耐心等待）...',
+                '✅ 分析完成，正在整理结果...'
+            ];
+            
+            const updateProgress = () => {
+                if (analysisStep < steps.length) {
+                    resultDiv.innerHTML = `
+                        <div class="result-box" style="padding: 20px;">
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <div class="spinner" style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            </div>
+                            <div style="text-align: center; font-size: 16px; color: #666; line-height: 1.8;">
+                                ${steps[analysisStep]}
+                            </div>
+                            ${analysisStep >= 2 ? '<div style="text-align: center; margin-top: 15px; color: #999; font-size: 14px;">💡 提示：LLM分析可能需要30-180秒，请勿关闭页面</div>' : ''}
+                        </div>
+                    `;
+                    analysisStep++;
+                    if (analysisStep < steps.length) {
+                        setTimeout(updateProgress, 1500);
+                    }
+                }
+            };
+            
+            updateProgress();
 
             // Get selected provider
             const providerSelect = document.getElementById('llmProvider');
@@ -779,6 +809,7 @@ return members`
                     requestBody.provider = selectedProvider;
                 }
                 
+                const startTime = Date.now();
                 const response = await fetch(`${API_BASE}/analyze`, {
                     method: 'POST',
                     headers: {
@@ -788,9 +819,33 @@ return members`
                 });
 
                 const result = await response.json();
-                displayAnalysisResult(result);
+                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                // 显示完成状态
+                resultDiv.innerHTML = `
+                    <div class="result-box" style="padding: 20px; text-align: center;">
+                        <div style="color: #059669; font-size: 18px; margin-bottom: 10px;">✅ 分析完成</div>
+                        <div style="color: #666; font-size: 14px;">总耗时: ${duration}秒</div>
+                    </div>
+                `;
+                
+                // 延迟一下再显示结果，让用户看到完成提示
+                setTimeout(() => {
+                    displayAnalysisResult(result);
+                }, 500);
             } catch (error) {
-                resultDiv.innerHTML = `<div class="result-box"><span class="error">❌ 错误: ${error.message}</span></div>`;
+                resultDiv.innerHTML = `
+                    <div class="result-box">
+                        <span class="error">❌ 错误: ${error.message}</span>
+                        ${error.message && error.message.includes('timeout') ? 
+                            '<div style="margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 5px; color: #92400e;">' +
+                            '💡 分析超时提示：<br>' +
+                            '1. 检查LLM服务是否正常运行<br>' +
+                            '2. 本地模型可能需要更长时间，请耐心等待<br>' +
+                            '3. 可以在application.yml中增加llm.timeout配置（当前180秒）' +
+                            '</div>' : ''}
+                    </div>
+                `;
             } finally {
                 setLoading('analysisLoading', false);
                 setButtonsDisabled(false);

@@ -40,9 +40,12 @@ public class OllamaLlmService implements LlmService {
 
     @Override
     public String analyzeScript(String script) throws Exception {
-        log.info("Analyzing script with Ollama, model: {}", llmConfig.getOllama().getModel());
+        log.info("开始使用Ollama分析脚本，模型: {}, 超时设置: {}秒", 
+                llmConfig.getOllama().getModel(), llmConfig.getTimeout());
+        log.debug("构建分析提示词...");
 
         String prompt = buildAnalysisPrompt(script);
+        log.debug("提示词构建完成，长度: {} 字符", prompt.length());
 
         // Build Ollama API request
         String requestBody = String.format(
@@ -53,24 +56,49 @@ public class OllamaLlmService implements LlmService {
                 llmConfig.getMaxTokens()
         );
 
+        log.debug("发送请求到Ollama API: {}", llmConfig.getOllama().getApiUrl());
         Request request = new Request.Builder()
                 .url(llmConfig.getOllama().getApiUrl())
                 .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
                 .build();
 
+        long requestStartTime = System.currentTimeMillis();
         try (Response response = httpClient.newCall(request).execute()) {
+            long requestDuration = System.currentTimeMillis() - requestStartTime;
+            log.debug("收到Ollama API响应，耗时: {}ms", requestDuration);
+            
             if (!response.isSuccessful()) {
+                log.error("Ollama API请求失败，状态码: {}", response.code());
                 throw new IOException("Ollama API request failed: " + response.code());
             }
 
+            log.debug("解析响应内容...");
             String responseBody = response.body().string();
             JsonNode jsonNode = objectMapper.readTree(responseBody);
 
             if (jsonNode.has("response")) {
-                return jsonNode.get("response").asText();
+                String analysis = jsonNode.get("response").asText();
+                log.info("Ollama分析完成，响应长度: {} 字符，总耗时: {}ms", 
+                        analysis.length(), requestDuration);
+                return analysis;
             } else {
+                log.error("Ollama API响应格式无效，缺少'response'字段");
                 throw new IOException("Invalid response format from Ollama API");
             }
+        } catch (java.net.SocketTimeoutException e) {
+            long requestDuration = System.currentTimeMillis() - requestStartTime;
+            log.error("Ollama API请求超时，已等待: {}ms，超时设置: {}秒", 
+                    requestDuration, llmConfig.getTimeout());
+            throw new IOException("Ollama API request timeout after " + 
+                    llmConfig.getTimeout() + " seconds: " + e.getMessage(), e);
+        } catch (java.io.IOException e) {
+            long requestDuration = System.currentTimeMillis() - requestStartTime;
+            if (e.getMessage() != null && e.getMessage().contains("timeout")) {
+                log.error("Ollama API请求超时（IO异常），已等待: {}ms", requestDuration);
+            } else {
+                log.error("Ollama API请求IO错误，已等待: {}ms", requestDuration, e);
+            }
+            throw e;
         }
     }
 

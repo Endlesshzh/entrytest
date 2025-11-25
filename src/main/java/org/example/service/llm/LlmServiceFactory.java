@@ -5,7 +5,6 @@ import org.example.config.LlmConfig;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -99,5 +98,12 @@ public class LlmServiceFactory {
      */
     public boolean hasAvailableService() {
         return services.values().stream().anyMatch(LlmService::isAvailable);
+    }
+
+    /**
+     * Get LLM configuration
+     */
+    public LlmConfig getLlmConfig() {
+        return llmConfig;
     }
 }

@@ -189,6 +189,14 @@ public class ScriptEngineService {
             return redisTemplate.opsForValue().get(key);
         }
 
+        public Object mget(String... keys) {
+            return redisTemplate.opsForValue().multiGet(java.util.Arrays.asList(keys));
+        }
+
+        public Object mget(java.util.List<String> keys) {
+            return redisTemplate.opsForValue().multiGet(keys);
+        }
+
         public void set(String key, Object value) {
             redisTemplate.opsForValue().set(key, value);
         }

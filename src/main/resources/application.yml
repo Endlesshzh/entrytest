@@ -27,32 +27,40 @@ spring:
 # LLM Configuration - Multiple Providers Support
 llm:
   # Primary provider: OPENAI, CLAUDE, COMPASS, OLLAMA, VLLM
+  # 主提供商：OPENAI（OpenAI官方API）、CLAUDE（Anthropic官方API）、COMPASS（Shopee Compass OpenAI API Proxy）、OLLAMA（本地部署）、VLLM（本地高性能部署）
   primary-provider: OLLAMA
 
-  # Request timeout in seconds
-  timeout: 60
+  # Request timeout in seconds (increased for Ollama local models)
+  timeout: 180
   # Temperature for generation (0.0 - 1.0)
   temperature: 0.3
   # Max tokens to generate
   max-tokens: 2000
 
   # OpenAI Configuration
+  # 使用 OpenAI 官方 API
+  # 获取 API Key: https://platform.openai.com/api-keys
   openai:
     api-url: https://api.openai.com/v1/chat/completions
     api-key: ${OPENAI_API_KEY:}
-    model: gpt-3.5-turbo
+    model: gpt-3.5-turbo  # 可选: gpt-3.5-turbo, gpt-4, gpt-4-turbo
 
   # Claude Configuration
+  # 使用 Anthropic 官方 API
+  # 获取 API Key: https://console.anthropic.com/
   claude:
     api-url: https://api.anthropic.com/v1/messages
     api-key: ${CLAUDE_API_KEY:}
-    model: claude-3-sonnet-20240229
+    model: claude-3-sonnet-20240229  # 可选: claude-3-haiku, claude-3-sonnet, claude-3-opus
 
-  # Compass Configuration (国内大模型)
+  # Compass Configuration (Shopee Compass OpenAI API Proxy)
+  # 通过 Compass 的 OpenAI 兼容代理接入，支持统一接口调用多种模型
+  # 文档: https://compass.llm.shopee.io/docs/PLATFORM/openai-api-proxy
+  # 如果未设置 COMPASS_API_URL，将使用默认的 Compass OpenAI API Proxy 地址
   compass:
-    api-url: ${COMPASS_API_URL:}
+    api-url: ${COMPASS_API_URL:https://compass.llm.shopee.io/v1/chat/completions}
     api-key: ${COMPASS_API_KEY:}
-    model: compass-1
+    model: ${COMPASS_MODEL:compass-1}  # 根据 Compass 文档配置具体模型名称
 
   # Ollama Configuration (Local)
   ollama:
