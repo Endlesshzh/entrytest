@@ -1,13 +1,12 @@
 package org.example.service.llm;
 
 /**
- * LLM Service Interface
- * All LLM providers must implement this interface
+ * LLM 接口，所有类型 LLM provider 均实现此
  */
 public interface LlmService {
 
     /**
-     * Analyze script using LLM
+     * 使用 LLM 分析脚本
      *
      * @param script The script to analyze
      * @return Analysis result
@@ -15,14 +14,14 @@ public interface LlmService {
     String analyzeScript(String script) throws Exception;
 
     /**
-     * Get provider name
+     * 获取 provider name
      *
      * @return Provider name
      */
     LlmProvider getProvider();
 
     /**
-     * Check if the service is available
+     * 检查服务是否可用
      *
      * @return true if available
      */

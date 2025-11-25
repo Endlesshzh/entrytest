@@ -85,7 +85,7 @@ class RedisDataGeneratorTest {
 
         // 验证调用次数
         verify(hashOperations, times(count)).putAll(anyString(), anyMap());
-        
+
         // 验证键格式
         for (int i = 1; i <= count; i++) {
             verify(hashOperations, times(1)).putAll(eq("user:" + i), anyMap());
@@ -122,7 +122,7 @@ class RedisDataGeneratorTest {
 
         // 验证调用次数
         verify(hashOperations, times(count)).putAll(anyString(), anyMap());
-        
+
         // 验证键格式
         for (int i = 1; i <= count; i++) {
             verify(hashOperations, times(1)).putAll(eq("product:" + i), anyMap());
@@ -159,7 +159,7 @@ class RedisDataGeneratorTest {
 
         // 验证调用次数
         verify(hashOperations, times(count)).putAll(anyString(), anyMap());
-        
+
         // 验证键格式
         for (int i = 1; i <= count; i++) {
             verify(hashOperations, times(1)).putAll(eq("order:" + i), anyMap());
@@ -215,7 +215,7 @@ class RedisDataGeneratorTest {
                 timeoutCaptor.capture(),
                 any(TimeUnit.class)
         );
-        
+
         // 验证所有TTL值都在1-24之间
         List<Long> timeouts = timeoutCaptor.getAllValues();
         assertEquals(count, timeouts.size());

@@ -90,7 +90,7 @@ public class ScriptController {
     }
 
     /**
-     * Test run a script (dry run)
+     * 测试运行脚本（dry run）
      */
     @PostMapping("/test")
     public ResponseEntity<ScriptExecutionResult> testScript( @RequestBody ScriptExecutionRequest request) {
