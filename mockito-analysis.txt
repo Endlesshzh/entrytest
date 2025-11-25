@@ -1,0 +1,6 @@
+[INFO] |  |     \- (org.ow2.asm:asm:jar:9.3:test - omitted for conflict with 9.5)
+[INFO] |  +- (org.mockito:mockito-core:jar:5.5.0:test - version managed from 5.3.1; omitted for duplicate)
+[INFO] |  +- (org.mockito:mockito-junit-jupiter:jar:5.5.0:test - version managed from 5.3.1; omitted for duplicate)
+[INFO] +- org.mockito:mockito-core:jar:5.5.0:test (scope not updated to test)
+[INFO] +- org.mockito:mockito-junit-jupiter:jar:5.5.0:test (scope not updated to test)
+[INFO] |  +- (org.mockito:mockito-core:jar:5.5.0:test - version managed from 5.5.0; omitted for duplicate)

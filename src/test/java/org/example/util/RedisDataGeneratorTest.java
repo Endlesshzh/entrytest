@@ -6,13 +6,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -25,11 +26,11 @@ import static org.mockito.Mockito.*;
  * 单元测试类：RedisDataGenerator
  * 测试Redis数据生成器的关键方法和流程
  */
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
 @DisplayName("Redis数据生成器单元测试")
 class RedisDataGeneratorTest {
 
-    @Mock
+    @MockBean
     private RedisTemplate<String, Object> redisTemplate;
 
     @Mock

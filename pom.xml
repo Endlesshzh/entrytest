@@ -30,15 +30,16 @@
     <dependencyManagement>
         <dependencies>
             <!-- 确保 Mockito 版本正确，覆盖 Spring Boot 默认版本（如果需要） -->
+            <!-- 使用 5.11.0 以支持 Java 25 -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>5.5.0</version>
+                <version>5.11.0</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>5.5.0</version>
+                <version>5.11.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -220,8 +221,10 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <!-- 跳过测试执行，只在明确运行 mvn test 时执行 -->
-                    <skipTests>true</skipTests>
+                    <!-- 默认不跳过测试，可以通过 -DskipTests=true 跳过 -->
+                    <!-- <skipTests>false</skipTests> -->
+                    <!-- 启用 Byte Buddy 实验性支持以支持 Java 25 -->
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

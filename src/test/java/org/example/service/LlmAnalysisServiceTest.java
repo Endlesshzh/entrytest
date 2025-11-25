@@ -10,7 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 
@@ -22,14 +23,14 @@ import static org.mockito.Mockito.*;
  * 单元测试类：LlmAnalysisService
  * 测试LLM分析服务的关键方法和流程
  */
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
 @DisplayName("LLM分析服务单元测试")
 class LlmAnalysisServiceTest {
 
-    @Mock
+    @MockBean
     private ScriptConfig scriptConfig;
 
-    @Mock
+    @MockBean
     private LlmServiceFactory llmServiceFactory;
 
     @Mock
