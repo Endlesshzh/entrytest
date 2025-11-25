@@ -48,24 +48,30 @@ public class ClaudeLlmService implements LlmService {
 
         Request request = new Request.Builder()
                 .url(llmConfig.getClaude().getApiUrl())
-                .header("x-api-key", llmConfig.getClaude().getApiKey())
-                .header("anthropic-version", "2023-06-01")
+                .header("Authorization", "Bearer " + llmConfig.getClaude().getApiKey())
                 .header("Content-Type", "application/json")
                 .post(RequestBody.create(requestBody, MediaType.parse("application/json")))
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Claude API request failed: " + response.code());
+                String errorBody = response.body() != null ? response.body().string() : "No error body";
+                log.error("Claude API request failed: {} - {}", response.code(), errorBody);
+                throw new IOException("Claude API request failed: " + response.code() + " - " + errorBody);
             }
 
             String responseBody = response.body().string();
             JsonNode jsonNode = objectMapper.readTree(responseBody);
 
-            if (jsonNode.has("content") && jsonNode.get("content").size() > 0) {
+            // Try OpenAI-compatible format first (Compass proxy format)
+            if (jsonNode.has("choices") && jsonNode.get("choices").size() > 0) {
+                return jsonNode.get("choices").get(0).get("message").get("content").asText();
+            }
+            // Try official Claude API format
+            else if (jsonNode.has("content") && jsonNode.get("content").size() > 0) {
                 return jsonNode.get("content").get(0).get("text").asText();
             } else {
-                throw new IOException("Invalid response format from Claude API");
+                throw new IOException("Invalid response format from Claude API: " + responseBody);
             }
         }
     }

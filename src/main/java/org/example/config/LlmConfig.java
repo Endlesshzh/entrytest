@@ -61,21 +61,21 @@ public class LlmConfig {
 
     @Data
     public static class OpenAIConfig {
-        private String apiUrl = "https://api.openai.com/v1/chat/completions";
+        private String apiUrl = "http://compass.llm.shopee.io/compass-api/v1/chat/completions";
         private String apiKey;
         private String model = "gpt-3.5-turbo";
     }
 
     @Data
     public static class ClaudeConfig {
-        private String apiUrl = "https://api.anthropic.com/v1/messages";
+        private String apiUrl = "http://compass.llm.shopee.io/compass-api/v1/messages";
         private String apiKey;
         private String model = "claude-3-sonnet-20240229";
     }
 
     @Data
     public static class CompassConfig {
-        private String apiUrl;
+        private String apiUrl = "http://compass.llm.shopee.io/compass-api/v1/chat/completions";
         private String apiKey;
         private String model = "compass-1";
     }

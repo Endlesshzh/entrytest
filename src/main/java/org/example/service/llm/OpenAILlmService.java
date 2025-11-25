@@ -55,7 +55,9 @@ public class OpenAILlmService implements LlmService {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("OpenAI API request failed: " + response.code());
+                String errorBody = response.body() != null ? response.body().string() : "No error body";
+                log.error("OpenAI API request failed: {} - {}", response.code(), errorBody);
+                throw new IOException("OpenAI API request failed: " + response.code() + " - " + errorBody);
             }
 
             String responseBody = response.body().string();

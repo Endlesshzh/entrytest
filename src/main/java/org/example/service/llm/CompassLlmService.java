@@ -56,7 +56,9 @@ public class CompassLlmService implements LlmService {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Compass API request failed: " + response.code());
+                String errorBody = response.body() != null ? response.body().string() : "No error body";
+                log.error("Compass API request failed: {} - {}", response.code(), errorBody);
+                throw new IOException("Compass API request failed: " + response.code() + " - " + errorBody);
             }
 
             String responseBody = response.body().string();

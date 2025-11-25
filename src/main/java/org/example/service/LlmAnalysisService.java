@@ -131,7 +131,7 @@ public class LlmAnalysisService {
     /**
      * 执行原始分析
      */
-    private ScriptAnalysisResult performBasicAnalysis(String script) {
+    public ScriptAnalysisResult performBasicAnalysis(String script) {
         List<String> securityIssues = new ArrayList<>();
         List<String> qualityIssues = new ArrayList<>();
         List<String> performanceSuggestions = new ArrayList<>();

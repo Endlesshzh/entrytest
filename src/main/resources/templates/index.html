@@ -553,6 +553,11 @@
             <!-- Analysis Result -->
             <div class="panel">
                 <h2>🔍 LLM 分析结果</h2>
+                <div style="margin-bottom: 12px; display: none;" id="stopButtonContainer">
+                    <button class="btn-clear" onclick="stopAnalysis()" id="btnStop">
+                        <span>⏹️</span> 停止分析
+                    </button>
+                </div>
                 <div class="loading" id="analysisLoading">
                     <div class="spinner"></div>
                     <p>正在分析脚本...</p>
@@ -572,6 +577,11 @@
         // LLM Provider Management
         let availableProviders = [];
         let allProviders = [];
+        
+        // Stream control
+        let currentReader = null;
+        let currentAbortController = null;
+        let isStreaming = false;
         
         // Load available LLM providers on page load
         async function loadProviders() {
@@ -753,6 +763,54 @@ return members`
             }
         }
 
+        function stopAnalysis() {
+            if (isStreaming && currentReader) {
+                console.log('Stopping analysis...');
+                isStreaming = false;
+                
+                // 取消读取
+                if (currentReader) {
+                    currentReader.cancel().catch(err => {
+                        console.error('Error canceling reader:', err);
+                    });
+                    currentReader = null;
+                }
+                
+                // 取消请求
+                if (currentAbortController) {
+                    currentAbortController.abort();
+                    currentAbortController = null;
+                }
+                
+                // 更新UI
+                const resultDiv = document.getElementById('analysisResult');
+                const stopButtonContainer = document.getElementById('stopButtonContainer');
+                stopButtonContainer.style.display = 'none';
+                setLoading('analysisLoading', false);
+                setButtonsDisabled(false);
+                
+                // 显示停止提示
+                const statusDiv = resultDiv.querySelector('.status-message');
+                if (statusDiv) {
+                    statusDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span style="color: #f59e0b; font-size: 18px;">⏹️</span>
+                            <span style="color: #f59e0b; font-weight: 600;">分析已停止</span>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result-box">
+                            <div style="text-align: center; padding: 20px; color: #f59e0b;">
+                                <span style="font-size: 24px; display: block; margin-bottom: 10px;">⏹️</span>
+                                <span style="font-weight: 600; font-size: 16px;">分析已停止</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
         async function analyzeScript() {
             const script = editor.getValue().trim();
             if (!script) {
@@ -760,83 +818,235 @@ return members`
                 return;
             }
 
+            // 如果正在流式输出，先停止
+            if (isStreaming) {
+                stopAnalysis();
+                // 等待一下再开始新的分析
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
             const resultDiv = document.getElementById('analysisResult');
+            const stopButtonContainer = document.getElementById('stopButtonContainer');
             setLoading('analysisLoading', true);
             setButtonsDisabled(true);
+            stopButtonContainer.style.display = 'block';
+            isStreaming = true;
             
-            // 显示分析过程
-            let analysisStep = 0;
-            const steps = [
-                '🔍 开始分析脚本...',
-                '📊 执行基础静态分析（检查安全性、代码质量）...',
-                '🤖 调用LLM服务进行深度分析（这可能需要一些时间，请耐心等待）...',
-                '✅ 分析完成，正在整理结果...'
-            ];
-            
-            const updateProgress = () => {
-                if (analysisStep < steps.length) {
-                    resultDiv.innerHTML = `
-                        <div class="result-box" style="padding: 20px;">
-                            <div style="text-align: center; margin-bottom: 20px;">
-                                <div class="spinner" style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                            </div>
-                            <div style="text-align: center; font-size: 16px; color: #666; line-height: 1.8;">
-                                ${steps[analysisStep]}
-                            </div>
-                            ${analysisStep >= 2 ? '<div style="text-align: center; margin-top: 15px; color: #999; font-size: 14px;">💡 提示：LLM分析可能需要30-180秒，请勿关闭页面</div>' : ''}
-                        </div>
-                    `;
-                    analysisStep++;
-                    if (analysisStep < steps.length) {
-                        setTimeout(updateProgress, 1500);
-                    }
-                }
-            };
-            
-            updateProgress();
+            // 初始化结果显示区域
+            resultDiv.innerHTML = `
+                <div class="result-box" style="padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div class="spinner" style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                    <div style="text-align: center; font-size: 16px; color: #666; line-height: 1.8;">
+                        🔍 开始分析脚本...
+                    </div>
+                </div>
+            `;
 
             // Get selected provider
             const providerSelect = document.getElementById('llmProvider');
             const selectedProvider = providerSelect.value || null;
 
-            try {
-                const requestBody = {
-                    script: script
-                };
+            const requestBody = {
+                script: script
+            };
+            
+            // Only include provider if one is selected
+            if (selectedProvider) {
+                requestBody.provider = selectedProvider;
+            }
+            
+            const startTime = Date.now();
+            let basicAnalysis = null;
+            let fullResult = null;
+            
+            // 创建 AbortController 用于取消请求
+            currentAbortController = new AbortController();
+
+            // 定义处理 SSE 事件的函数（使用闭包访问外部变量）
+            const processSSEEvent = (eventText) => {
+                console.log('Processing SSE event text:', eventText);
                 
-                // Only include provider if one is selected
-                if (selectedProvider) {
-                    requestBody.provider = selectedProvider;
+                const lines = eventText.split('\n');
+                let eventName = 'message';
+                let eventData = null;
+
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
+                    
+                    // 检查 event: 行（处理 event: 或 event: 后面可能有空格的情况）
+                    const lowerLine = trimmedLine.toLowerCase();
+                    if (lowerLine.startsWith('event')) {
+                        const colonIndex = trimmedLine.indexOf(':');
+                        if (colonIndex !== -1) {
+                            eventName = trimmedLine.substring(colonIndex + 1).trim();
+                            console.log('Found event name:', eventName, 'from line:', trimmedLine);
+                        }
+                    } 
+                    // 检查 data: 行
+                    else if (lowerLine.startsWith('data')) {
+                        const colonIndex = trimmedLine.indexOf(':');
+                        if (colonIndex !== -1) {
+                            const dataStr = trimmedLine.substring(colonIndex + 1).trim();
+                            console.log('Found data (first 100 chars):', dataStr.substring(0, 100));
+                            // 尝试解析 JSON，如果失败则使用原始字符串
+                            if (dataStr) {
+                                try {
+                                    eventData = JSON.parse(dataStr);
+                                    console.log('Parsed as JSON');
+                                } catch (e) {
+                                    eventData = dataStr;
+                                    console.log('Using as string');
+                                }
+                            }
+                        }
+                    }
                 }
-                
-                const startTime = Date.now();
-                const response = await fetch(`${API_BASE}/analyze`, {
+
+                console.log('SSE Event processed - name:', eventName, 'data type:', typeof eventData, 'data:', eventData);
+
+                // 处理不同的事件类型
+                if (eventName === 'status') {
+                    console.log('Handling status event:', eventData);
+                    updateStatus(eventData);
+                } else if (eventName === 'basic_analysis') {
+                    console.log('Handling basic_analysis event');
+                    basicAnalysis = eventData;
+                    displayBasicAnalysis(eventData);
+                } else if (eventName === 'result') {
+                    console.log('Handling result event');
+                    fullResult = eventData;
+                    displayAnalysisResult(eventData);
+                } else if (eventName === 'error') {
+                    console.error('Handling error event:', eventData);
+                    throw new Error(typeof eventData === 'string' ? eventData : JSON.stringify(eventData));
+                } else {
+                    console.warn('Unknown event type:', eventName, eventData);
+                }
+            };
+
+            try {
+                // 使用流式接口
+                console.log('Starting stream request...', requestBody);
+                const response = await fetch(`${API_BASE}/analyze/stream`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    signal: currentAbortController.signal
                 });
 
-                const result = await response.json();
-                const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 
-                // 显示完成状态
-                resultDiv.innerHTML = `
-                    <div class="result-box" style="padding: 20px; text-align: center;">
-                        <div style="color: #059669; font-size: 18px; margin-bottom: 10px;">✅ 分析完成</div>
-                        <div style="color: #666; font-size: 14px;">总耗时: ${duration}秒</div>
-                    </div>
-                `;
-                
-                // 延迟一下再显示结果，让用户看到完成提示
-                setTimeout(() => {
-                    displayAnalysisResult(result);
-                }, 500);
+                console.log('Stream response received, starting to read...');
+                console.log('Response headers:', [...response.headers.entries()]);
+
+                const reader = response.body.getReader();
+                currentReader = reader;
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                try {
+                    while (isStreaming) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            console.log('Stream reading done, remaining buffer:', buffer);
+                            // 处理最后的数据
+                            if (buffer.trim()) {
+                                processSSEEvent(buffer);
+                            }
+                            break;
+                        }
+                        
+                        // 检查是否已停止
+                        if (!isStreaming) {
+                            console.log('Stream stopped by user');
+                            reader.cancel();
+                            break;
+                        }
+
+                        const chunk = decoder.decode(value, { stream: true });
+                        console.log('Received chunk (length:', chunk.length, '):', chunk.substring(0, 200) + (chunk.length > 200 ? '...' : ''));
+                        buffer += chunk;
+                        
+                        // SSE 格式: 每个事件以 \n\n 分隔
+                        let eventEndIndex;
+                        while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+                            const eventText = buffer.substring(0, eventEndIndex);
+                            buffer = buffer.substring(eventEndIndex + 2);
+                            
+                            if (eventText.trim()) {
+                                processSSEEvent(eventText);
+                            }
+                        }
+                    }
+
+                    // 只有在正常完成时才显示完成提示
+                    if (isStreaming) {
+                        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                        console.log('Stream completed, duration:', duration, 'seconds');
+                        
+                        // 确保 loading 状态关闭
+                        setLoading('analysisLoading', false);
+                        setButtonsDisabled(false);
+                        stopButtonContainer.style.display = 'none';
+                        isStreaming = false;
+                        currentReader = null;
+                        currentAbortController = null;
+                        
+                        // 显示完成提示
+                        if (fullResult) {
+                            const completionDiv = document.createElement('div');
+                            completionDiv.style.cssText = 'text-align: center; padding: 10px; background: #d1fae5; border-radius: 6px; margin-top: 10px; color: #065f46; font-size: 14px;';
+                            completionDiv.textContent = `✅ 分析完成，总耗时: ${duration}秒`;
+                            resultDiv.appendChild(completionDiv);
+                        } else {
+                            console.warn('Stream completed but no full result received');
+                        }
+                    }
+                } catch (streamError) {
+                    console.error('Error reading stream:', streamError);
+                    
+                    // 如果是用户取消，不显示错误
+                    if (streamError.name === 'AbortError' || !isStreaming) {
+                        console.log('Stream was aborted by user');
+                        return;
+                    }
+                    
+                    // 确保即使出错也关闭 loading
+                    setLoading('analysisLoading', false);
+                    setButtonsDisabled(false);
+                    stopButtonContainer.style.display = 'none';
+                    isStreaming = false;
+                    currentReader = null;
+                    currentAbortController = null;
+                    throw streamError;
+                }
             } catch (error) {
+                console.error('Analysis error:', error);
+                
+                // 如果是用户取消，不显示错误
+                if (error.name === 'AbortError' || !isStreaming) {
+                    console.log('Request was aborted by user');
+                    return;
+                }
+                
+                // 确保即使出错也关闭 loading
+                setLoading('analysisLoading', false);
+                setButtonsDisabled(false);
+                stopButtonContainer.style.display = 'none';
+                isStreaming = false;
+                currentReader = null;
+                currentAbortController = null;
+                
                 resultDiv.innerHTML = `
                     <div class="result-box">
-                        <span class="error">❌ 错误: ${error.message}</span>
+                        <span class="error">❌ 错误: ${escapeHtml(error.message)}</span>
                         ${error.message && error.message.includes('timeout') ? 
                             '<div style="margin-top: 15px; padding: 15px; background: #fef3c7; border-radius: 5px; color: #92400e;">' +
                             '💡 分析超时提示：<br>' +
@@ -847,9 +1057,89 @@ return members`
                     </div>
                 `;
             } finally {
-                setLoading('analysisLoading', false);
-                setButtonsDisabled(false);
+                console.log('Finally block: ensuring loading is closed');
+                // 双重保险：确保 loading 一定关闭
+                try {
+                    if (!isStreaming) {
+                        setLoading('analysisLoading', false);
+                        setButtonsDisabled(false);
+                        stopButtonContainer.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error('Error in finally block:', e);
+                }
             }
+        }
+
+        function updateStatus(statusText) {
+            const resultDiv = document.getElementById('analysisResult');
+            let statusDiv = resultDiv.querySelector('.status-message');
+            
+            if (!statusDiv) {
+                // 创建状态显示区域
+                statusDiv = document.createElement('div');
+                statusDiv.className = 'status-message';
+                statusDiv.style.cssText = 'text-align: center; font-size: 16px; color: #666; line-height: 1.8; margin-bottom: 20px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #3b82f6;';
+                
+                // 如果结果区域为空或只有等待消息，清空并添加状态
+                if (resultDiv.innerHTML.trim() === '' || resultDiv.innerHTML.includes('等待分析')) {
+                    resultDiv.innerHTML = '';
+                }
+                resultDiv.appendChild(statusDiv);
+            }
+            
+            // 更新状态内容
+            const isComplete = statusText.includes('完成') || statusText.includes('完成');
+            statusDiv.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    ${!isComplete ? '<div class="spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>' : '<span style="color: #059669; font-size: 18px;">✅</span>'}
+                    <span>${escapeHtml(statusText)}</span>
+                </div>
+            `;
+            
+            console.log('Status updated:', statusText);
+        }
+
+        function displayBasicAnalysis(result) {
+            console.log('Displaying basic analysis:', result);
+            const resultDiv = document.getElementById('analysisResult');
+            
+            // 保留状态消息
+            const statusDiv = resultDiv.querySelector('.status-message');
+            
+            let html = '';
+            if (statusDiv) {
+                html += statusDiv.outerHTML;
+            }
+            
+            html += '<div class="analysis-section">';
+            html += '<h3>📊 基础分析结果';
+            html += `<span class="score-badge ${getScoreClass(result.securityScore)}">${result.securityScore}/100</span>`;
+            html += '</h3>';
+            
+            if (result.securityIssues && result.securityIssues.length > 0) {
+                html += '<ul class="issue-list">';
+                result.securityIssues.forEach(issue => {
+                    html += `<li>${escapeHtml(issue)}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p style="color: #059669; margin-top: 8px;">✓ 未发现安全问题</p>';
+            }
+            
+            if (result.qualityIssues && result.qualityIssues.length > 0) {
+                html += '<h4 style="margin-top: 15px; color: #374151;">代码质量：</h4>';
+                html += '<ul class="issue-list">';
+                result.qualityIssues.forEach(issue => {
+                    html += `<li>${escapeHtml(issue)}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            html += '</div>';
+
+            resultDiv.innerHTML = html;
+            console.log('Basic analysis displayed');
         }
 
         function displayExecutionResult(result) {
@@ -891,8 +1181,29 @@ return members`
         }
 
         function displayAnalysisResult(result) {
+            console.log('Displaying full analysis result:', result);
             const resultDiv = document.getElementById('analysisResult');
             let html = '';
+            
+            // 保留状态消息（如果存在），并更新为完成状态
+            const statusDiv = resultDiv.querySelector('.status-message');
+            if (statusDiv) {
+                // 更新状态为完成
+                statusDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="color: #059669; font-size: 18px;">✅</span>
+                        <span style="color: #059669; font-weight: 600;">分析完成</span>
+                    </div>
+                `;
+                html += statusDiv.outerHTML;
+            } else {
+                // 如果没有状态消息，添加一个完成状态
+                html += '<div class="status-message" style="text-align: center; font-size: 16px; color: #059669; line-height: 1.8; margin-bottom: 20px; padding: 10px; background: #d1fae5; border-radius: 6px; border-left: 4px solid #059669;">';
+                html += '<div style="display: flex; align-items: center; justify-content: center; gap: 10px;">';
+                html += '<span style="color: #059669; font-size: 18px;">✅</span>';
+                html += '<span style="color: #059669; font-weight: 600;">分析完成</span>';
+                html += '</div></div>';
+            }
 
             // 安全性评分
             html += '<div class="analysis-section">';

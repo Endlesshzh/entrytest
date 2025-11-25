@@ -37,30 +37,31 @@ llm:
   # Max tokens to generate
   max-tokens: 2000
 
-  # OpenAI Configuration
-  # 使用 OpenAI 官方 API
-  # 获取 API Key: https://platform.openai.com/api-keys
+  # OpenAI Configuration (通过 Compass 代理)
+  # 使用 Compass OpenAI API Proxy
+  # 文档: https://compass.llm.shopee.io/docs/PLATFORM/openai-api-proxy
   openai:
-    api-url: https://api.openai.com/v1/chat/completions
-    api-key: ${OPENAI_API_KEY:}
+    api-url: http://compass.llm.shopee.io/compass-api/v1/chat/completions
+    api-key: 167cf909df74b9896264802b6beb5ba41beb3ba651880127576d03d776071afb
     model: gpt-3.5-turbo  # 可选: gpt-3.5-turbo, gpt-4, gpt-4-turbo
 
-  # Claude Configuration
-  # 使用 Anthropic 官方 API
-  # 获取 API Key: https://console.anthropic.com/
+  # Claude Configuration (通过 Compass 代理)
+  # 使用 Compass Claude API Proxy
+  # 文档: https://compass.llm.shopee.io/docs/PLATFORM/openai-api-proxy
+  # 注意：模型名称需要在 Compass 平台配置，请查看 Compass 文档获取正确的模型名称
   claude:
-    api-url: https://api.anthropic.com/v1/messages
-    api-key: ${CLAUDE_API_KEY:}
-    model: claude-3-sonnet-20240229  # 可选: claude-3-haiku, claude-3-sonnet, claude-3-opus
+    api-url: http://compass.llm.shopee.io/compass-api/v1/chat/completions
+    api-key: 167cf909df74b9896264802b6beb5ba41beb3ba651880127576d03d776071afb
+    model: gpt-oss-120b
 
   # Compass Configuration (Shopee Compass OpenAI API Proxy)
   # 通过 Compass 的 OpenAI 兼容代理接入，支持统一接口调用多种模型
   # 文档: https://compass.llm.shopee.io/docs/PLATFORM/openai-api-proxy
-  # 如果未设置 COMPASS_API_URL，将使用默认的 Compass OpenAI API Proxy 地址
+  # 注意：模型名称需要在 Compass 平台配置，请查看 Compass 文档获取正确的模型名称
   compass:
-    api-url: ${COMPASS_API_URL:https://compass.llm.shopee.io/v1/chat/completions}
-    api-key: ${COMPASS_API_KEY:}
-    model: ${COMPASS_MODEL:compass-1}  # 根据 Compass 文档配置具体模型名称
+    api-url: http://compass.llm.shopee.io/compass-api/v1/chat/completions
+    api-key: 167cf909df74b9896264802b6beb5ba41beb3ba651880127576d03d776071afb
+    model: DeepSeek-R1
 
   # Ollama Configuration (Local)
   ollama:
