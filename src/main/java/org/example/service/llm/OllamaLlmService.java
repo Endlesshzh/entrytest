@@ -19,6 +19,7 @@ public class OllamaLlmService implements LlmService {
 
     private final LlmConfig llmConfig;
     private final OkHttpClient httpClient;
+    private final OkHttpClient healthCheckClient;
     private final ObjectMapper objectMapper;
 
     public OllamaLlmService(LlmConfig llmConfig) {
@@ -28,6 +29,12 @@ public class OllamaLlmService implements LlmService {
                 .connectTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
                 .readTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
                 .writeTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
+                .build();
+        // 为健康检查使用更短的超时时间（5秒）
+        this.healthCheckClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -74,15 +81,35 @@ public class OllamaLlmService implements LlmService {
 
     @Override
     public boolean isAvailable() {
+        // 检查配置是否存在
+        if (llmConfig.getOllama() == null || llmConfig.getOllama().getApiUrl() == null) {
+            log.debug("Ollama configuration is missing");
+            return false;
+        }
+
         try {
+            String healthCheckUrl = llmConfig.getOllama().getApiUrl().replace("/api/generate", "/api/tags");
             Request request = new Request.Builder()
-                    .url(llmConfig.getOllama().getApiUrl().replace("/api/generate", "/api/tags"))
+                    .url(healthCheckUrl)
                     .get()
                     .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                return response.isSuccessful();
+            try (Response response = healthCheckClient.newCall(request).execute()) {
+                boolean available = response.isSuccessful();
+                if (available) {
+                    log.debug("Ollama service is available at {}", healthCheckUrl);
+                } else {
+                    log.debug("Ollama service health check failed with status: {}", response.code());
+                }
+                return available;
             }
+        } catch (java.net.ConnectException e) {
+            log.debug("Ollama service not reachable at {}: {}", 
+                    llmConfig.getOllama().getApiUrl(), e.getMessage());
+            return false;
+        } catch (java.net.SocketTimeoutException e) {
+            log.debug("Ollama service health check timeout: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
             log.debug("Ollama service not available: {}", e.getMessage());
             return false;

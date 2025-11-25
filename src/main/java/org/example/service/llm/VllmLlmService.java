@@ -20,6 +20,7 @@ public class VllmLlmService implements LlmService {
 
     private final LlmConfig llmConfig;
     private final OkHttpClient httpClient;
+    private final OkHttpClient healthCheckClient;
     private final ObjectMapper objectMapper;
 
     public VllmLlmService(LlmConfig llmConfig) {
@@ -29,6 +30,12 @@ public class VllmLlmService implements LlmService {
                 .connectTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
                 .readTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
                 .writeTimeout(llmConfig.getTimeout(), TimeUnit.SECONDS)
+                .build();
+        // 为健康检查使用更短的超时时间（5秒）
+        this.healthCheckClient = new OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
                 .build();
     }
 
@@ -77,18 +84,33 @@ public class VllmLlmService implements LlmService {
     @Override
     public boolean isAvailable() {
         if (llmConfig.getVllm() == null || llmConfig.getVllm().getApiUrl() == null) {
+            log.debug("vLLM configuration is missing");
             return false;
         }
 
         try {
+            String healthCheckUrl = llmConfig.getVllm().getApiUrl().replace("/v1/chat/completions", "/v1/models");
             Request request = new Request.Builder()
-                    .url(llmConfig.getVllm().getApiUrl().replace("/v1/chat/completions", "/v1/models"))
+                    .url(healthCheckUrl)
                     .get()
                     .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                return response.isSuccessful();
+            try (Response response = healthCheckClient.newCall(request).execute()) {
+                boolean available = response.isSuccessful();
+                if (available) {
+                    log.debug("vLLM service is available at {}", healthCheckUrl);
+                } else {
+                    log.debug("vLLM service health check failed with status: {}", response.code());
+                }
+                return available;
             }
+        } catch (java.net.ConnectException e) {
+            log.debug("vLLM service not reachable at {}: {}", 
+                    llmConfig.getVllm().getApiUrl(), e.getMessage());
+            return false;
+        } catch (java.net.SocketTimeoutException e) {
+            log.debug("vLLM service health check timeout: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
             log.debug("vLLM service not available: {}", e.getMessage());
             return false;
